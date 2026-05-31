@@ -3,16 +3,49 @@ import 'package:isar/isar.dart';
 
 import '../../../../core/database/database_provider.dart';
 import '../../../problem_log/data/models/problem_model.dart';
+import '../../../problem_log/presentation/providers/problem_provider.dart';
 import '../../data/models/topic_model.dart';
 
 final customTopicsProvider = StreamProvider<List<TopicModel>>((ref) {
   final isar = ref.watch(isarProvider);
   return isar.topicModels.watchLazy(fireImmediately: true).asyncMap((_) async {
-    // idGreaterThan(0) matches all auto-increment IDs (which start at 1)
     final all = await isar.topicModels.filter().idGreaterThan(0).findAll();
     all.sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
     return all;
   });
+});
+
+// Per-topicId count of solved problems (reactive, updates with allProblemsProvider)
+final topicSolvedCountProvider = Provider<Map<String, int>>((ref) {
+  final problems = ref.watch(allProblemsProvider).valueOrNull ?? [];
+  final counts = <String, int>{};
+  for (final p in problems) {
+    if (p.status == ProblemStatus.solved) {
+      counts[p.topicId] = (counts[p.topicId] ?? 0) + 1;
+    }
+  }
+  return counts;
+});
+
+// Topic mastery list for analytics: only topics with ≥1 solved, sorted worst→best
+final topicMasteryProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  final topics = ref.watch(customTopicsProvider).valueOrNull ?? [];
+  final solvedCounts = ref.watch(topicSolvedCountProvider);
+  final result = <Map<String, dynamic>>[];
+  for (final t in topics) {
+    final solved = solvedCounts[t.topicId] ?? 0;
+    if (solved == 0) continue;
+    final pct = (solved / t.estimatedProblems * 100).round().clamp(0, 100);
+    result.add({
+      'topicId': t.topicId,
+      'name': t.name,
+      'solved': solved,
+      'total': t.estimatedProblems,
+      'pct': pct,
+    });
+  }
+  result.sort((a, b) => (a['pct'] as int).compareTo(b['pct'] as int));
+  return result;
 });
 
 const _striverSectionNames = [

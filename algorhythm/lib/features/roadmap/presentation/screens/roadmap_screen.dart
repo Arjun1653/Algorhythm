@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/app_settings_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -17,6 +18,12 @@ class RoadmapScreen extends ConsumerStatefulWidget {
 
 class _RoadmapScreenState extends ConsumerState<RoadmapScreen> {
   bool _isStriverMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isStriverMode = ref.read(appModeProvider) == 'striver';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +49,6 @@ class _RoadmapScreenState extends ConsumerState<RoadmapScreen> {
                   Text('Roadmap',
                       style: AppTextStyles.display28.copyWith(color: text1)),
                   const SizedBox(height: 18),
-                  // Mode toggle
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -55,16 +61,14 @@ class _RoadmapScreenState extends ConsumerState<RoadmapScreen> {
                         _ToggleBtn(
                           label: 'Custom',
                           isActive: !_isStriverMode,
-                          onTap: () =>
-                              setState(() => _isStriverMode = false),
+                          onTap: () => setState(() => _isStriverMode = false),
                           isDark: isDark,
                           accentColor: text1,
                         ),
                         _ToggleBtn(
                           label: 'Striver A2Z',
                           isActive: _isStriverMode,
-                          onTap: () =>
-                              setState(() => _isStriverMode = true),
+                          onTap: () => setState(() => _isStriverMode = true),
                           isDark: isDark,
                           accentColor: AppColors.accent,
                         ),
@@ -127,8 +131,8 @@ class _ToggleBtn extends StatelessWidget {
           decoration: BoxDecoration(
             color: isActive ? surface3 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: isActive ? border : Colors.transparent),
+            border:
+                Border.all(color: isActive ? border : Colors.transparent),
           ),
           child: Center(
             child: Text(
@@ -160,6 +164,7 @@ class _CustomView extends ConsumerWidget {
     final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     final topicsAsync = ref.watch(customTopicsProvider);
+    final solvedCounts = ref.watch(topicSolvedCountProvider);
 
     return topicsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -172,14 +177,14 @@ class _CustomView extends ConsumerWidget {
           );
         }
 
-        final totalSolved = 0; // computed from problem data in Stage 2
+        final totalSolved = topics.fold(
+            0, (sum, t) => sum + (solvedCounts[t.topicId] ?? 0));
         final totalAll =
             topics.fold(0, (sum, t) => sum + t.estimatedProblems);
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
           children: [
-            // Overall progress
             Row(
               children: [
                 Expanded(
@@ -189,7 +194,8 @@ class _CustomView extends ConsumerWidget {
                       value: totalAll > 0 ? totalSolved / totalAll : 0,
                       minHeight: 8,
                       backgroundColor: border,
-                      valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+                      valueColor:
+                          const AlwaysStoppedAnimation(AppColors.accent),
                     ),
                   ),
                 ),
@@ -201,17 +207,22 @@ class _CustomView extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '${topics.where((t) => t.state == TopicState.done).length} of ${topics.length} topics mastered',
+              '${topics.where((t) => (solvedCounts[t.topicId] ?? 0) >= t.estimatedProblems && t.estimatedProblems > 0).length} of ${topics.length} topics mastered',
               style: AppTextStyles.mono11.copyWith(color: text3),
             ),
             const SizedBox(height: 22),
-            ...topics.asMap().entries.map((e) => _RoadmapNode(
-                  topic: e.value,
-                  index: e.key,
-                  isLast: e.key == topics.length - 1,
-                  onTap: () => onTopicTap(e.value.topicId),
-                  isDark: isDark,
-                )),
+            ...topics.asMap().entries.map((e) {
+              final topic = e.value;
+              final solved = solvedCounts[topic.topicId] ?? 0;
+              return _RoadmapNode(
+                topic: topic,
+                solved: solved,
+                index: e.key,
+                isLast: e.key == topics.length - 1,
+                onTap: () => onTopicTap(topic.topicId),
+                isDark: isDark,
+              );
+            }),
           ],
         );
       },
@@ -221,6 +232,7 @@ class _CustomView extends ConsumerWidget {
 
 class _RoadmapNode extends StatelessWidget {
   final TopicModel topic;
+  final int solved;
   final int index;
   final bool isLast;
   final VoidCallback onTap;
@@ -228,17 +240,28 @@ class _RoadmapNode extends StatelessWidget {
 
   const _RoadmapNode({
     required this.topic,
+    required this.solved,
     required this.index,
     required this.isLast,
     required this.onTap,
     required this.isDark,
   });
 
+  // Compute effective state from live data, falling back to stored state
+  TopicState get _effectiveState {
+    if (solved >= topic.estimatedProblems && topic.estimatedProblems > 0) {
+      return TopicState.done;
+    }
+    if (solved > 0) return TopicState.active;
+    return topic.state;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final locked = topic.state == TopicState.locked;
-    final done = topic.state == TopicState.done;
-    final active = topic.state == TopicState.active;
+    final state = _effectiveState;
+    final locked = state == TopicState.locked;
+    final done = state == TopicState.done;
+    final active = state == TopicState.active;
 
     final text1 = isDark ? AppColors.darkText1 : AppColors.lightText1;
     final text2 = isDark ? AppColors.darkText2 : AppColors.lightText2;
@@ -256,15 +279,17 @@ class _RoadmapNode extends StatelessWidget {
         : active
             ? AppColors.accent
             : surface3;
-    final nodeTextColor =
-        (done || active) ? Colors.white : text3;
+    final nodeTextColor = (done || active) ? Colors.white : text3;
+
+    final pct = topic.estimatedProblems > 0
+        ? (solved / topic.estimatedProblems).clamp(0.0, 1.0)
+        : 0.0;
 
     return Opacity(
       opacity: locked ? 0.52 : 1.0,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Rail
           SizedBox(
             width: 34,
             child: Column(
@@ -304,7 +329,6 @@ class _RoadmapNode extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // Card
           Expanded(
             child: GestureDetector(
               onTap: locked ? null : onTap,
@@ -358,36 +382,31 @@ class _RoadmapNode extends StatelessWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(3),
                               child: LinearProgressIndicator(
-                                value: 0,
+                                value: pct,
                                 minHeight: 6,
                                 backgroundColor: border,
                                 valueColor: AlwaysStoppedAnimation(
-                                    done
-                                        ? AppColors.emerald
-                                        : AppColors.accent),
+                                    done ? AppColors.emerald : AppColors.accent),
                               ),
                             ),
                           ),
                           const SizedBox(width: 10),
-                          Text('0%',
+                          Text('${(pct * 100).round()}%',
                               style: AppTextStyles.mono11.copyWith(
-                                  color: text2,
-                                  fontWeight: FontWeight.w600)),
+                                  color: text2, fontWeight: FontWeight.w600)),
                         ],
                       ),
                       const SizedBox(height: 9),
                       Text(
-                        '0 / ${topic.estimatedProblems} problems'
-                        '${topic.state == TopicState.unlocked ? ' · ready to start' : ''}',
-                        style:
-                            AppTextStyles.mono11.copyWith(color: text3),
+                        '$solved / ${topic.estimatedProblems} problems'
+                        '${state == TopicState.unlocked && solved == 0 ? ' · ready to start' : ''}',
+                        style: AppTextStyles.mono11.copyWith(color: text3),
                       ),
                     ] else ...[
                       const SizedBox(height: 12),
                       Text(
                         '${topic.estimatedProblems} problems · complete previous topic to unlock',
-                        style:
-                            AppTextStyles.mono11.copyWith(color: text3),
+                        style: AppTextStyles.mono11.copyWith(color: text3),
                       ),
                     ],
                   ],
@@ -427,13 +446,11 @@ class _StriverView extends ConsumerWidget {
         final totalSolved =
             sections.fold(0, (sum, s) => sum + (s['solved'] as int));
         const totalAll = 474;
-        final pct =
-            (totalSolved / totalAll * 100).round();
+        final pct = (totalSolved / totalAll * 100).round();
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
           children: [
-            // Overall progress card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -466,8 +483,8 @@ class _StriverView extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           Text('Striver A2Z · 18 sections',
-                              style: AppTextStyles.mono11
-                                  .copyWith(color: text3)),
+                              style:
+                                  AppTextStyles.mono11.copyWith(color: text3)),
                         ],
                       ),
                       Container(
@@ -502,14 +519,11 @@ class _StriverView extends ConsumerWidget {
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      _DiffDot(color: AppColors.emerald,
-                          label: '152 Easy'),
+                      _DiffDot(color: AppColors.emerald, label: '152 Easy'),
                       const SizedBox(width: 16),
-                      _DiffDot(color: AppColors.amber,
-                          label: '186 Medium'),
+                      _DiffDot(color: AppColors.amber, label: '186 Medium'),
                       const SizedBox(width: 16),
-                      _DiffDot(color: AppColors.red,
-                          label: '136 Hard'),
+                      _DiffDot(color: AppColors.red, label: '136 Hard'),
                     ],
                   ),
                 ],
@@ -544,9 +558,7 @@ class _StriverView extends ConsumerWidget {
                           width: 30,
                           height: 30,
                           decoration: BoxDecoration(
-                            color: isDone
-                                ? AppColors.emerald
-                                : surface3,
+                            color: isDone ? AppColors.emerald : surface3,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Center(
@@ -555,11 +567,10 @@ class _StriverView extends ConsumerWidget {
                                     color: Colors.white, size: 15)
                                 : Text(
                                     '${e.key + 1}',
-                                    style: AppTextStyles.display16
-                                        .copyWith(
-                                            color: text3,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700),
+                                    style: AppTextStyles.display16.copyWith(
+                                        color: text3,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700),
                                   ),
                           ),
                         ),
@@ -587,9 +598,7 @@ class _StriverView extends ConsumerWidget {
                               minHeight: 6,
                               backgroundColor: border,
                               valueColor: AlwaysStoppedAnimation(
-                                  isDone
-                                      ? AppColors.emerald
-                                      : AppColors.accent),
+                                  isDone ? AppColors.emerald : AppColors.accent),
                             ),
                           ),
                         ),
@@ -597,8 +606,7 @@ class _StriverView extends ConsumerWidget {
                         Text(
                           '$solved / $total',
                           style: AppTextStyles.mono11.copyWith(
-                              color: text2,
-                              fontWeight: FontWeight.w600),
+                              color: text2, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -632,8 +640,7 @@ class _DiffDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 5),
-        Text(label,
-            style: AppTextStyles.mono11.copyWith(color: text3)),
+        Text(label, style: AppTextStyles.mono11.copyWith(color: text3)),
       ],
     );
   }

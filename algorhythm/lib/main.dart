@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/database/database_provider.dart';
+import 'core/providers/app_settings_provider.dart';
+import 'core/providers/shared_preferences_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
@@ -22,39 +24,32 @@ void main() async {
     ProviderScope(
       overrides: [
         isarProvider.overrideWithValue(isar),
+        sharedPreferencesProvider.overrideWithValue(prefs),
       ],
-      child: AlgoRhythmApp(prefs: prefs),
+      child: const AlgoRhythmApp(),
     ),
   );
 }
 
 class AlgoRhythmApp extends ConsumerStatefulWidget {
-  final SharedPreferences prefs;
-
-  const AlgoRhythmApp({super.key, required this.prefs});
+  const AlgoRhythmApp({super.key});
 
   @override
   ConsumerState<AlgoRhythmApp> createState() => _AlgoRhythmAppState();
 }
 
 class _AlgoRhythmAppState extends ConsumerState<AlgoRhythmApp> {
-  late final router = buildRouter(widget.prefs);
-  bool _isDark = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _isDark = widget.prefs.getBool('dark_mode') ?? true;
-  }
+  late final router = buildRouter(ref.read(sharedPreferencesProvider));
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ref.watch(darkModeProvider);
     return MaterialApp.router(
       title: 'AlgoRhythm',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       routerConfig: router,
     );
   }
