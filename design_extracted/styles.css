@@ -1,0 +1,273 @@
+/* ============================================================
+   AlgoRhythm — design tokens + base
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* brand accent (overridable via tweak) */
+  --accent: #7C3AED;
+  --accent-press: color-mix(in oklch, var(--accent) 84%, #000);
+  --accent-soft: color-mix(in oklch, var(--accent) 16%, transparent);
+  --accent-line: color-mix(in oklch, var(--accent) 32%, transparent);
+  --on-accent: #ffffff;
+
+  /* semantic — fixed across modes */
+  --emerald: #10B981;
+  --emerald-soft: color-mix(in oklch, var(--emerald) 16%, transparent);
+  --amber: #F59E0B;
+  --amber-soft: color-mix(in oklch, var(--amber) 16%, transparent);
+  --red: #F25555;
+  --red-soft: color-mix(in oklch, var(--red) 16%, transparent);
+}
+
+/* ---------- DARK (primary) ---------- */
+[data-theme="dark"] {
+  --bg: #0D0D0D;
+  --surface-1: #151516;
+  --surface-2: #1A1A1C;
+  --surface-3: #232327;
+  --surface-press: #2A2A2E;
+  --border: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.13);
+  --text-1: #F4F4F3;
+  --text-2: #9C9C9A;
+  --text-3: #67676A;
+  --shadow: 0 8px 28px rgba(0,0,0,0.5);
+  --chrome: #F4F4F3;
+  --heat-0: #1A1A1C;
+  --heat-1: color-mix(in oklch, var(--accent) 28%, #1A1A1C);
+  --heat-2: color-mix(in oklch, var(--accent) 60%, #1A1A1C);
+  --heat-3: var(--accent);
+}
+
+/* ---------- LIGHT (secondary) ---------- */
+[data-theme="light"] {
+  --bg: #F4F3F0;
+  --surface-1: #FBFBF9;
+  --surface-2: #FFFFFF;
+  --surface-3: #F1F0EC;
+  --surface-press: #ECEBE6;
+  --border: rgba(20,18,15,0.09);
+  --border-strong: rgba(20,18,15,0.16);
+  --text-1: #1A1916;
+  --text-2: #6C6A64;
+  --text-3: #9B988F;
+  --shadow: 0 10px 30px rgba(40,36,30,0.13);
+  --chrome: #1A1916;
+  --heat-0: #E7E6E1;
+  --heat-1: color-mix(in oklch, var(--accent) 32%, #E7E6E1);
+  --heat-2: color-mix(in oklch, var(--accent) 64%, #E7E6E1);
+  --heat-3: var(--accent);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background:
+    radial-gradient(1100px 700px at 50% -10%, #17141d 0%, #0a0a0b 55%, #070707 100%);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ---------- device frame ---------- */
+.phone {
+  width: 402px;
+  height: 874px;
+  border-radius: 46px;
+  background: var(--bg);
+  border: 11px solid #050505;
+  box-shadow:
+    0 0 0 1.5px #2a2a2e,
+    0 40px 90px rgba(0,0,0,0.6),
+    0 8px 24px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: var(--text-1);
+}
+
+/* status bar */
+.statusbar {
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px 0 30px;
+  position: relative;
+  z-index: 5;
+}
+.statusbar .clock {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: .2px;
+  color: var(--chrome);
+}
+.statusbar .punch {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  transform: translateX(-50%);
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: #000;
+  box-shadow: inset 0 0 0 1.5px #18181b;
+}
+.statusbar .sysicons { display: flex; align-items: center; gap: 7px; color: var(--chrome); }
+
+/* scroll viewport */
+.viewport {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  scrollbar-width: none;
+}
+.viewport::-webkit-scrollbar { display: none; }
+
+/* gesture pill */
+.gesturebar {
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+.gesturebar .pill {
+  width: 128px; height: 5px; border-radius: 3px;
+  background: var(--chrome);
+  opacity: .55;
+}
+
+/* generic helpers */
+.screen { padding: 8px 20px 132px; }
+.row { display: flex; align-items: center; }
+.mono { font-family: var(--font-mono); }
+.disp { font-family: var(--font-display); }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+}
+
+/* difficulty chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .4px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  text-transform: uppercase;
+}
+.chip.easy   { color: var(--emerald); background: var(--emerald-soft); }
+.chip.medium { color: var(--amber);   background: var(--amber-soft); }
+.chip.hard   { color: var(--red);     background: var(--red-soft); }
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+/* tap feedback */
+.tap { transition: transform .12s ease; -webkit-tap-highlight-color: transparent; }
+.tap:active { transform: scale(.975); }
+
+@keyframes screenIn {
+  from { transform: translateY(10px); }
+  to   { transform: translateY(0); }
+}
+.animate-in { animation: screenIn .32s cubic-bezier(.22,.61,.36,1) both; }
+
+@keyframes sheetIn {
+  from { transform: translateY(46px); }
+  to   { transform: translateY(0); }
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- bottom navigation ---------- */
+.bottomnav {
+  position: absolute;
+  left: 14px; right: 14px; bottom: 32px;
+  height: 64px;
+  display: flex;
+  align-items: stretch;
+  background: color-mix(in oklch, var(--surface-2) 86%, transparent);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 0 6px;
+  z-index: 20;
+}
+.navitem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-3);
+  position: relative;
+}
+.navitem .navpip {
+  display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 30px; border-radius: 16px;
+  transition: background .2s ease, color .2s ease;
+}
+.navitem .navlabel {
+  font-family: var(--font-display);
+  font-size: 10.5px; font-weight: 600; letter-spacing: .2px;
+}
+.navitem.on { color: var(--accent); }
+.navitem.on .navpip { background: var(--accent-soft); }
+/* keep Log slot clear of the FAB only when it's shown */
+.bottomnav.with-fab .navitem:nth-child(4) { margin-right: 56px; }
+
+.fab {
+  position: absolute;
+  right: 26px; bottom: 112px;
+  width: 60px; height: 60px;
+  border-radius: 20px;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 12px 28px color-mix(in oklch, var(--accent) 45%, transparent), 0 4px 10px rgba(0,0,0,.3);
+  z-index: 25;
+}
+.fab:active { background: var(--accent-press); }
+
+/* heat scroll hide bar */
+.heatscroll::-webkit-scrollbar { height: 0; }
+.heatscroll { scrollbar-width: none; }

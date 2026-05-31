@@ -1,0 +1,22 @@
+# Docs / planning
+*.md
+*.zip
+
+# Flutter build outputs
+algorhythm/build/
+algorhythm/.dart_tool/
+algorhythm/.flutter-plugins
+algorhythm/.flutter-plugins-dependencies
+algorhythm/pubspec.lock
+
+# Android local
+algorhythm/android/local.properties
+algorhythm/android/.gradle/
+algorhythm/android/app/release/
+
+# Isar generated (regenerate with build_runner)
+algorhythm/lib/**/*.g.dart
+
+# IDE
+.idea/
+*.iml

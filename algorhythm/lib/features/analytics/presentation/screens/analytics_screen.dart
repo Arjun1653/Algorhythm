@@ -1,0 +1,31 @@
+import 'package:flutter/material.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
+
+class AnalyticsScreen extends StatelessWidget {
+  const AnalyticsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final text1 = isDark ? AppColors.darkText1 : AppColors.lightText1;
+    final text2 = isDark ? AppColors.darkText2 : AppColors.lightText2;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Analytics', style: AppTextStyles.display24.copyWith(color: text1)),
+              const SizedBox(height: 4),
+              Text('Stats + heatmap coming in Stage 2', style: AppTextStyles.body14.copyWith(color: text2)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
