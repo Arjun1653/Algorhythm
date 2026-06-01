@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/problem_log/data/models/catalog_entry_model.dart';
 import '../../features/problem_log/data/models/problem_model.dart';
@@ -48,6 +50,39 @@ class DatabaseInitializer {
     });
   }
 
+  static const int _schemaVersion = 2;
+
+  Future<void> migrate(SharedPreferences prefs) async {
+    final currentVersion = prefs.getInt('db_schema_version') ?? 0;
+    if (currentVersion >= _schemaVersion) return;
+    if (currentVersion < 2) await _migrateV2EstimatedProblems();
+    await prefs.setInt('db_schema_version', _schemaVersion);
+  }
+
+  Future<void> _migrateV2EstimatedProblems() async {
+    final topics = await _isar.topicModels.filter().idGreaterThan(0).findAll();
+    if (topics.isEmpty) return;
+    const updates = {
+      'arrays_hashing': 90, 'two_pointers': 27, 'sliding_window': 34,
+      'prefix_sum': 14, 'recursion': 22, 'strings': 49, 'hashing': 33,
+      'linked_lists': 52, 'stacks': 46, 'queues': 8, 'binary_search': 54,
+      'trees': 66, 'bsts': 31, 'heaps': 41, 'graphs': 53,
+      'backtracking': 33, 'dp': 104, 'tries': 18, 'advanced_graphs': 44,
+    };
+    final toUpdate = <TopicModel>[];
+    for (final topic in topics) {
+      final newEstimate = updates[topic.topicId];
+      if (newEstimate != null && topic.estimatedProblems != newEstimate) {
+        topic.estimatedProblems = newEstimate;
+        toUpdate.add(topic);
+      }
+    }
+    if (toUpdate.isEmpty) return;
+    await _isar.writeTxn(() async {
+      await _isar.topicModels.putAll(toUpdate);
+    });
+  }
+
   Future<void> _loadCatalog() async {
     final count = await _isar.catalogEntrys.count();
     if (count > 0) return;
@@ -60,7 +95,7 @@ class DatabaseInitializer {
         await _isar.catalogEntrys.putAll(entries);
       });
     } catch (e) {
-      // Catalog missing or corrupt — manual entry only
+      debugPrint('[DatabaseInitializer] Failed to load catalog: $e');
     }
   }
 
@@ -72,7 +107,7 @@ class DatabaseInitializer {
           .filter()
           .catalogIdStartsWith('s')
           .findAll();
-      final existingIds = existing.map((p) => p.catalogId).toSet();
+      final existingIds = existing.map((p) => p.catalogId).whereType<String>().toSet();
 
       final toSeed = <ProblemModel>[];
       for (final item in json) {
@@ -88,7 +123,7 @@ class DatabaseInitializer {
         await _isar.problemModels.putAll(toSeed);
       });
     } catch (e) {
-      // Striver JSON missing — skip seeding
+      debugPrint('[DatabaseInitializer] Failed to seed Striver problems: $e');
     }
   }
 
@@ -136,27 +171,27 @@ class DatabaseInitializer {
   List<TopicModel> _defaultTopics() {
     final definitions = [
       // Step 1 — Foundational
-      ('arrays_hashing', 'Arrays & Hashing', 'Core array manipulation and hash map techniques', 30, 1, <String>[], 1),
-      ('two_pointers', 'Two Pointers', 'Reduce nested loops with converging/diverging pointers', 20, 2, ['arrays_hashing'], 1),
-      ('sliding_window', 'Sliding Window', 'Variable/fixed windows over arrays and strings', 20, 3, ['arrays_hashing'], 1),
-      ('prefix_sum', 'Prefix Sum', 'Cumulative sums for O(1) range queries', 15, 4, ['arrays_hashing'], 1),
-      ('recursion', 'Recursion', 'Base cases, call stacks, and recursive thinking', 20, 5, <String>[], 1),
-      ('strings', 'Strings', 'String manipulation, parsing, and encoding tricks', 20, 6, ['arrays_hashing'], 1),
-      ('hashing', 'Hashing', 'Hash maps, sets, and collision handling', 15, 7, ['arrays_hashing'], 1),
+      ('arrays_hashing', 'Arrays & Hashing', 'Core array manipulation and hash map techniques', 90, 1, <String>[], 1),
+      ('two_pointers', 'Two Pointers', 'Reduce nested loops with converging/diverging pointers', 27, 2, ['arrays_hashing'], 1),
+      ('sliding_window', 'Sliding Window', 'Variable/fixed windows over arrays and strings', 34, 3, ['arrays_hashing'], 1),
+      ('prefix_sum', 'Prefix Sum', 'Cumulative sums for O(1) range queries', 14, 4, ['arrays_hashing'], 1),
+      ('recursion', 'Recursion', 'Base cases, call stacks, and recursive thinking', 22, 5, <String>[], 1),
+      ('strings', 'Strings', 'String manipulation, parsing, and encoding tricks', 49, 6, ['arrays_hashing'], 1),
+      ('hashing', 'Hashing', 'Hash maps, sets, and collision handling', 33, 7, ['arrays_hashing'], 1),
       // Step 2 — Intermediate
-      ('linked_lists', 'Linked Lists', 'Singly/doubly linked lists, fast-slow pointers', 20, 8, ['two_pointers'], 2),
-      ('stacks', 'Stacks', 'Monotonic stacks, bracket matching, histogram problems', 20, 9, ['arrays_hashing'], 2),
-      ('queues', 'Queues', 'BFS queues, deque, sliding window maximum', 15, 10, ['stacks'], 2),
-      ('binary_search', 'Binary Search', 'Search on sorted arrays and on answer space', 20, 11, ['arrays_hashing'], 2),
-      ('trees', 'Trees', 'DFS/BFS traversals, height, LCA, path problems', 30, 12, ['recursion', 'queues'], 2),
-      ('bsts', 'Binary Search Trees', 'BST properties, insertion, deletion, validation', 20, 13, ['trees', 'binary_search'], 2),
+      ('linked_lists', 'Linked Lists', 'Singly/doubly linked lists, fast-slow pointers', 52, 8, ['two_pointers'], 2),
+      ('stacks', 'Stacks', 'Monotonic stacks, bracket matching, histogram problems', 46, 9, ['arrays_hashing'], 2),
+      ('queues', 'Queues', 'BFS queues, deque, sliding window maximum', 8, 10, ['stacks'], 2),
+      ('binary_search', 'Binary Search', 'Search on sorted arrays and on answer space', 54, 11, ['arrays_hashing'], 2),
+      ('trees', 'Trees', 'DFS/BFS traversals, height, LCA, path problems', 66, 12, ['recursion', 'queues'], 2),
+      ('bsts', 'Binary Search Trees', 'BST properties, insertion, deletion, validation', 31, 13, ['trees', 'binary_search'], 2),
       // Step 3 — Advanced
-      ('heaps', 'Heaps', 'Min/max heaps, k-th element, merge k sorted', 20, 14, ['trees'], 3),
-      ('graphs', 'Graphs', 'BFS/DFS on general graphs, topological sort, union-find', 35, 15, ['trees', 'queues'], 3),
-      ('backtracking', 'Backtracking', 'Subsets, permutations, pruning the search tree', 25, 16, ['recursion'], 3),
-      ('dp', 'Dynamic Programming', '1D/2D DP, memoization, tabulation, classic patterns', 40, 17, ['recursion'], 3),
-      ('tries', 'Tries', 'Prefix trees, word search, autocomplete', 15, 18, ['hashing', 'trees'], 3),
-      ('advanced_graphs', 'Advanced Graphs', "Dijkstra, Bellman-Ford, Floyd-Warshall, Prim's, Kruskal's", 20, 19, ['graphs', 'heaps'], 3),
+      ('heaps', 'Heaps', 'Min/max heaps, k-th element, merge k sorted', 41, 14, ['trees'], 3),
+      ('graphs', 'Graphs', 'BFS/DFS on general graphs, topological sort, union-find', 53, 15, ['trees', 'queues'], 3),
+      ('backtracking', 'Backtracking', 'Subsets, permutations, pruning the search tree', 33, 16, ['recursion'], 3),
+      ('dp', 'Dynamic Programming', '1D/2D DP, memoization, tabulation, classic patterns', 104, 17, ['recursion'], 3),
+      ('tries', 'Tries', 'Prefix trees, word search, autocomplete', 18, 18, ['hashing', 'trees'], 3),
+      ('advanced_graphs', 'Advanced Graphs', "Dijkstra, Bellman-Ford, Floyd-Warshall, Prim's, Kruskal's", 44, 19, ['graphs', 'heaps'], 3),
     ];
 
     return definitions.map((d) {

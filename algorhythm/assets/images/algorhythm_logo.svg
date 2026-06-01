@@ -1,0 +1,52 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <defs>
+    <linearGradient id="gradientBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradientAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer circle background -->
+  <circle cx="100" cy="100" r="95" fill="url(#gradientBg)" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Inner design: combination of musical notes and algorithm nodes -->
+  <!-- Left node (algorithm) -->
+  <circle cx="60" cy="100" r="12" fill="#ffffff" opacity="0.9"/>
+  <circle cx="60" cy="100" r="8" fill="url(#gradientAccent)"/>
+  
+  <!-- Center node (larger) -->
+  <circle cx="100" cy="100" r="16" fill="#ffffff" opacity="0.9"/>
+  <circle cx="100" cy="100" r="12" fill="url(#gradientAccent)"/>
+  
+  <!-- Right node (algorithm) -->
+  <circle cx="140" cy="100" r="12" fill="#ffffff" opacity="0.9"/>
+  <circle cx="140" cy="100" r="8" fill="url(#gradientAccent)"/>
+  
+  <!-- Top node (rhythm) -->
+  <circle cx="100" cy="55" r="12" fill="#ffffff" opacity="0.9"/>
+  <circle cx="100" cy="55" r="8" fill="#fbbf24"/>
+  
+  <!-- Bottom node (rhythm) -->
+  <circle cx="100" cy="145" r="12" fill="#ffffff" opacity="0.9"/>
+  <circle cx="100" cy="145" r="8" fill="#fbbf24"/>
+  
+  <!-- Connection lines (representing rhythm waves and connections) -->
+  <line x1="72" y1="92" x2="88" y2="85" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+  <line x1="112" y1="85" x2="128" y2="92" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+  <line x1="100" y1="67" x2="100" y2="88" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+  <line x1="100" y1="112" x2="100" y2="133" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+  <line x1="128" y1="108" x2="112" y2="115" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+  <line x1="88" y1="115" x2="72" y2="108" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+  
+  <!-- Musical rhythm indicator (curved wave) -->
+  <path d="M 50 80 Q 55 75 60 80 Q 65 85 70 80" stroke="#fbbf24" stroke-width="1.5" fill="none" opacity="0.7"/>
+  <path d="M 130 80 Q 135 75 140 80 Q 145 85 150 80" stroke="#fbbf24" stroke-width="1.5" fill="none" opacity="0.7"/>
+  
+  <!-- Text arc (optional - commented out for cleaner logo) -->
+  <!-- <text x="100" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff">AlgoRhythm</text> -->
+</svg>

@@ -81,7 +81,7 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: () => context.canPop() ? context.pop() : context.go('/'),
                     child: Container(
                       width: 38,
                       height: 38,
@@ -427,7 +427,9 @@ class _ProblemRow extends StatelessWidget {
   Color get _dot => switch (problem.status) {
         ProblemStatus.solved => AppColors.emerald,
         ProblemStatus.needsReview => AppColors.amber,
-        ProblemStatus.attempted || ProblemStatus.unsolved => AppColors.darkText3,
+        ProblemStatus.attempted ||
+        ProblemStatus.unsolved =>
+          isDark ? AppColors.darkText3 : AppColors.lightText3,
       };
 
   String get _label => switch (problem.status) {

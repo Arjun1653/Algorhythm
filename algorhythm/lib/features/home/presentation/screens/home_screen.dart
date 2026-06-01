@@ -161,7 +161,7 @@ class _StreakHero extends StatelessWidget {
     final text3 = isDark ? AppColors.darkText3 : AppColors.lightText3;
 
     // Day labels for the last 7 days
-    const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const dayLetters = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su'];
     final now = DateTime.now();
     final labels = List.generate(7, (i) {
       final day = now.subtract(Duration(days: 6 - i));
@@ -569,8 +569,9 @@ class _RecentItem extends StatelessWidget {
     return switch (problem.status) {
       ProblemStatus.solved => AppColors.emerald,
       ProblemStatus.needsReview => AppColors.amber,
-      ProblemStatus.attempted => AppColors.darkText3,
-      ProblemStatus.unsolved => AppColors.darkText3,
+      ProblemStatus.attempted ||
+      ProblemStatus.unsolved =>
+        isDark ? AppColors.darkText3 : AppColors.lightText3,
     };
   }
 

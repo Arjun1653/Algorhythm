@@ -6,6 +6,7 @@ import '../../../../core/providers/app_settings_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../problem_log/presentation/providers/problem_provider.dart';
 import '../../data/models/topic_model.dart';
 import '../providers/roadmap_provider.dart';
 
@@ -27,6 +28,11 @@ class _RoadmapScreenState extends ConsumerState<RoadmapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Stay in sync when the user changes mode in Settings
+    ref.listen(appModeProvider, (_, newMode) {
+      setState(() => _isStriverMode = newMode == 'striver');
+    });
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final text1 = isDark ? AppColors.darkText1 : AppColors.lightText1;
     final text3 = isDark ? AppColors.darkText3 : AppColors.lightText3;
@@ -217,6 +223,8 @@ class _CustomView extends ConsumerWidget {
               return _RoadmapNode(
                 topic: topic,
                 solved: solved,
+                allTopics: topics,
+                allSolvedCounts: solvedCounts,
                 index: e.key,
                 isLast: e.key == topics.length - 1,
                 onTap: () => onTopicTap(topic.topicId),
@@ -233,6 +241,8 @@ class _CustomView extends ConsumerWidget {
 class _RoadmapNode extends StatelessWidget {
   final TopicModel topic;
   final int solved;
+  final List<TopicModel> allTopics;
+  final Map<String, int> allSolvedCounts;
   final int index;
   final bool isLast;
   final VoidCallback onTap;
@@ -241,19 +251,28 @@ class _RoadmapNode extends StatelessWidget {
   const _RoadmapNode({
     required this.topic,
     required this.solved,
+    required this.allTopics,
+    required this.allSolvedCounts,
     required this.index,
     required this.isLast,
     required this.onTap,
     required this.isDark,
   });
 
-  // Compute effective state from live data, falling back to stored state
   TopicState get _effectiveState {
     if (solved >= topic.estimatedProblems && topic.estimatedProblems > 0) {
       return TopicState.done;
     }
     if (solved > 0) return TopicState.active;
-    return topic.state;
+    if (topic.prerequisites.isEmpty) return TopicState.unlocked;
+    // Dynamically check if all prerequisites are done
+    final topicMap = {for (final t in allTopics) t.topicId: t};
+    final allPrereqsDone = topic.prerequisites.every((prereqId) {
+      final prereq = topicMap[prereqId];
+      if (prereq == null || prereq.estimatedProblems <= 0) return false;
+      return (allSolvedCounts[prereqId] ?? 0) >= prereq.estimatedProblems;
+    });
+    return allPrereqsDone ? TopicState.unlocked : TopicState.locked;
   }
 
   @override
@@ -437,186 +456,185 @@ class _StriverView extends ConsumerWidget {
         isDark ? AppColors.darkSurface3 : AppColors.lightSurface3;
     final border = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
-    final sectionsAsync = ref.watch(striverSectionsProvider);
+    final sections = ref.watch(striverSectionsProvider);
+    final isLoading = ref.watch(allProblemsProvider).isLoading;
 
-    return sectionsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (sections) {
-        final totalSolved =
-            sections.fold(0, (sum, s) => sum + (s['solved'] as int));
-        const totalAll = 474;
-        final pct = (totalSolved / totalAll * 100).round();
+    if (isLoading) return const Center(child: CircularProgressIndicator());
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: surface2,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: border),
-              ),
-              child: Column(
+    final totalSolved =
+        sections.fold(0, (sum, s) => sum + (s['solved'] as int));
+    const totalAll = 474;
+    final pct = (totalSolved / totalAll * 100).round().clamp(0, 100);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: surface2,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          RichText(
-                            text: TextSpan(
-                              style: AppTextStyles.display28
-                                  .copyWith(color: text1),
-                              children: [
-                                TextSpan(text: '$totalSolved'),
-                                TextSpan(
-                                  text: ' / $totalAll',
-                                  style: AppTextStyles.display18.copyWith(
-                                      color: text3,
-                                      fontWeight: FontWeight.w500),
-                                ),
-                              ],
+                      RichText(
+                        text: TextSpan(
+                          style: AppTextStyles.display28
+                              .copyWith(color: text1),
+                          children: [
+                            TextSpan(text: '$totalSolved'),
+                            TextSpan(
+                              text: ' / $totalAll',
+                              style: AppTextStyles.display18.copyWith(
+                                  color: text3,
+                                  fontWeight: FontWeight.w500),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text('Striver A2Z · 18 sections',
-                              style:
-                                  AppTextStyles.mono11.copyWith(color: text3)),
-                        ],
-                      ),
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: const BoxDecoration(
-                          color: AppColors.accentSoft,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$pct%',
-                            style: AppTextStyles.display16.copyWith(
-                                color: AppColors.accent,
-                                fontWeight: FontWeight.w700),
-                          ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text('Striver A2Z · 18 sections',
+                          style:
+                              AppTextStyles.mono11.copyWith(color: text3)),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: totalSolved / totalAll,
-                      minHeight: 8,
-                      backgroundColor: border,
-                      valueColor: const AlwaysStoppedAnimation(
-                          AppColors.accent),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentSoft,
+                      shape: BoxShape.circle,
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      _DiffDot(color: AppColors.emerald, label: '152 Easy'),
-                      const SizedBox(width: 16),
-                      _DiffDot(color: AppColors.amber, label: '186 Medium'),
-                      const SizedBox(width: 16),
-                      _DiffDot(color: AppColors.red, label: '136 Hard'),
-                    ],
+                    child: Center(
+                      child: Text(
+                        '$pct%',
+                        style: AppTextStyles.display16.copyWith(
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 18),
-            ...sections.asMap().entries.map((e) {
-              final s = e.value;
-              final solved = s['solved'] as int;
-              final total = s['total'] as int;
-              final pctSection =
-                  total > 0 ? (solved / total * 100).round() : 0;
-              final isDone = pctSection == 100;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-                decoration: BoxDecoration(
-                  color: surface2,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDone
-                        ? AppColors.emerald.withValues(alpha: 0.28)
-                        : border,
-                  ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: (totalSolved / totalAll).clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor: border,
+                  valueColor: const AlwaysStoppedAnimation(
+                      AppColors.accent),
                 ),
-                child: Column(
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _DiffDot(color: AppColors.emerald, label: '152 Easy'),
+                  const SizedBox(width: 16),
+                  _DiffDot(color: AppColors.amber, label: '186 Medium'),
+                  const SizedBox(width: 16),
+                  _DiffDot(color: AppColors.red, label: '136 Hard'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        ...sections.asMap().entries.map((e) {
+          final s = e.value;
+          final solved = s['solved'] as int;
+          final total = s['total'] as int;
+          final pctSection =
+              total > 0 ? (solved / total * 100).round() : 0;
+          final isDone = total > 0 && pctSection >= 100;
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            decoration: BoxDecoration(
+              color: surface2,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDone
+                    ? AppColors.emerald.withValues(alpha: 0.28)
+                    : border,
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: isDone ? AppColors.emerald : surface3,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: isDone
-                                ? const Icon(Icons.check_rounded,
-                                    color: Colors.white, size: 15)
-                                : Text(
-                                    '${e.key + 1}',
-                                    style: AppTextStyles.display16.copyWith(
-                                        color: text3,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            s['name'] as String,
-                            style: AppTextStyles.display16
-                                .copyWith(color: text1, fontSize: 14.5),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Icon(Icons.chevron_right_rounded,
-                            color: text3, size: 16),
-                      ],
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: isDone ? AppColors.emerald : surface3,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: isDone
+                            ? const Icon(Icons.check_rounded,
+                                color: Colors.white, size: 15)
+                            : Text(
+                                '${e.key + 1}',
+                                style: AppTextStyles.display16.copyWith(
+                                    color: text3,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700),
+                              ),
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: LinearProgressIndicator(
-                              value: total > 0 ? solved / total : 0,
-                              minHeight: 6,
-                              backgroundColor: border,
-                              valueColor: AlwaysStoppedAnimation(
-                                  isDone ? AppColors.emerald : AppColors.accent),
-                            ),
-                          ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        s['name'] as String,
+                        style: AppTextStyles.display16
+                            .copyWith(color: text1, fontSize: 14.5),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded,
+                        color: text3, size: 16),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: total > 0
+                              ? (solved / total).clamp(0.0, 1.0)
+                              : 0,
+                          minHeight: 6,
+                          backgroundColor: border,
+                          valueColor: AlwaysStoppedAnimation(
+                              isDone ? AppColors.emerald : AppColors.accent),
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '$solved / $total',
-                          style: AppTextStyles.mono11.copyWith(
-                              color: text2, fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      '$solved / $total',
+                      style: AppTextStyles.mono11.copyWith(
+                          color: text2, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
-              );
-            }),
-          ],
-        );
-      },
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 }

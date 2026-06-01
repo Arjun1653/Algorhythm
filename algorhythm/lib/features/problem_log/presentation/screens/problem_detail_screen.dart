@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -57,7 +58,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     p.notes = _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim();
     final repo = ProblemRepository(ref.read(isarProvider));
     await repo.updateProblem(p);
-    setState(() => _editingNotes = false);
+    if (mounted) setState(() => _editingNotes = false);
   }
 
   Future<void> _delete() async {
@@ -80,7 +81,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
     if (confirmed != true || !mounted) return;
     final repo = ProblemRepository(ref.read(isarProvider));
     await repo.deleteProblem(widget.problemId);
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) context.pop();
   }
 
   @override
@@ -121,7 +122,7 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
                 children: [
                   _SmallBtn(
                     icon: Icons.chevron_left_rounded,
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () => context.canPop() ? context.pop() : context.go('/'),
                     surface: surface2,
                     border: border,
                     color: text2,
@@ -470,12 +471,15 @@ class _ProblemDetailScreenState extends ConsumerState<ProblemDetailScreen> {
   }
 
   void _openReview() {
+    if (_problem == null) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => ReviewModal(problem: _problem!),
-    ).then((_) => _load());
+    ).then((_) {
+      if (mounted) _load();
+    });
   }
 
   Future<void> _toggleBookmark() async {
@@ -577,11 +581,14 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final neutral = isDark ? AppColors.darkText3 : AppColors.lightText3;
+    final neutralBg = isDark ? AppColors.darkSurface3 : AppColors.lightSurface3;
     final (label, color, bg) = switch (status) {
       ProblemStatus.solved => ('Solved', AppColors.emerald, AppColors.emeraldSoft),
       ProblemStatus.needsReview => ('Needs Review', AppColors.amber, AppColors.amberSoft),
-      ProblemStatus.attempted => ('Attempted', AppColors.darkText3, AppColors.darkSurface3),
-      ProblemStatus.unsolved => ('Unsolved', AppColors.darkText3, AppColors.darkSurface3),
+      ProblemStatus.attempted => ('Attempted', neutral, neutralBg),
+      ProblemStatus.unsolved => ('Unsolved', neutral, neutralBg),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),

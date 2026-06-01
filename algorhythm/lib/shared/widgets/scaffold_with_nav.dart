@@ -19,8 +19,7 @@ class ScaffoldWithNav extends StatelessWidget {
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final idx = _tabs.indexWhere((t) => t.path == location);
-    return idx < 0 ? 0 : idx;
+    return _tabs.indexWhere((t) => t.path == location);
   }
 
   @override
@@ -50,7 +49,7 @@ class ScaffoldWithNav extends StatelessWidget {
         child: Row(
           children: List.generate(_tabs.length, (i) {
             final tab = _tabs[i];
-            final isActive = i == idx;
+            final isActive = idx >= 0 && i == idx;
             return Expanded(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,

@@ -41,7 +41,7 @@ class SettingsScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => context.pop(),
+                    onTap: () => context.canPop() ? context.pop() : context.go('/'),
                     child: Container(
                       width: 38,
                       height: 38,

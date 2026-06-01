@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlgoRhythm Logo - SVG to PNG Converter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .converter {
+            margin: 20px 0;
+        }
+        .size-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #8b5cf6;
+        }
+        button.active {
+            background: #ec4899;
+        }
+        .canvas-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid #eee;
+            border-radius: 8px;
+            max-width: 300px;
+        }
+        .download-btn {
+            background: #10b981;
+            margin-top: 10px;
+        }
+        .download-btn:hover {
+            background: #059669;
+        }
+        .instructions {
+            background: #f3f4f6;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .preset-section {
+            margin: 30px 0;
+        }
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .preset-card {
+            border: 2px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .preset-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+        .preset-card h3 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+        }
+        .preset-card p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 AlgoRhythm Logo Converter</h1>
+        <p>Convert the Node Network logo SVG to PNG at different resolutions.</p>
+
+        <div class="converter">
+            <h2>Select Size</h2>
+            <div class="size-options" id="sizeOptions"></div>
+            
+            <div class="canvas-container">
+                <canvas id="canvas" width="200" height="200"></canvas>
+                <br>
+                <button class="download-btn" onclick="downloadPNG()">📥 Download PNG</button>
+            </div>
+        </div>
+
+        <div class="preset-section">
+            <h2>Quick Presets</h2>
+            <p>Click to generate multiple sizes at once:</p>
+            <div class="preset-grid">
+                <div class="preset-card" onclick="generateAndZip('android')">
+                    <h3>🤖 Android</h3>
+                    <p>36, 48, 72, 96, 144, 192px</p>
+                </div>
+                <div class="preset-card" onclick="generateAndZip('ios')">
+                    <h3>🍎 iOS</h3>
+                    <p>20, 29, 40, 60, 76, 120, 180, 1024px</p>
+                </div>
+                <div class="preset-card" onclick="generateAndZip('web')">
+                    <h3>🌐 Web</h3>
+                    <p>72, 96, 192, 256, 384, 512px</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Instructions</h3>
+            <ol>
+                <li>Select a size or click a preset to generate multiple sizes</li>
+                <li>Click "Download PNG" to save the image</li>
+                <li>Place Android icons in: <code>android/app/src/main/res/mipmap-*/</code></li>
+                <li>Place iOS icons in: <code>ios/Runner/Assets.xcassets/AppIcon.appiconset/</code></li>
+                <li>Place web icons in: <code>web/</code></li>
+                <li>Run <code>flutter clean && flutter pub get</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const sizes = {
+            favicon: 16,
+            web: [72, 96, 128, 192, 256, 384, 512, 1024],
+            android: {ldpi: 36, mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192},
+            ios: [20, 29, 40, 60, 76, 167, 120, 180, 1024]
+        };
+
+        let selectedSize = 192;
+
+        // Initialize size options
+        const sizeOptions = document.getElementById('sizeOptions');
+        [16, 32, 64, 96, 128, 192, 256, 512, 1024].forEach(size => {
+            const btn = document.createElement('button');
+            btn.textContent = `${size}×${size}`;
+            btn.onclick = () => selectSize(size);
+            if (size === 192) btn.classList.add('active');
+            sizeOptions.appendChild(btn);
+        });
+
+        function selectSize(size) {
+            selectedSize = size;
+            document.querySelectorAll('#sizeOptions button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderLogo();
+        }
+
+        function renderLogo() {
+            const canvas = document.getElementById('canvas');
+            canvas.width = selectedSize;
+            canvas.height = selectedSize;
+            const ctx = canvas.getContext('2d');
+
+            // Scale factor
+            const scale = selectedSize / 200;
+
+            // Draw background gradient
+            const gradient = ctx.createLinearGradient(0, 0, selectedSize, selectedSize);
+            gradient.addColorStop(0, '#6366f1');
+            gradient.addColorStop(1, '#8b5cf6');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(selectedSize/2, selectedSize/2, selectedSize/2 - 2*scale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw border
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2 * scale;
+            ctx.beginPath();
+            ctx.arc(selectedSize/2, selectedSize/2, selectedSize/2 - 2*scale, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Helper function to draw a node
+            function drawNode(x, y, outerR, innerR, color) {
+                // Outer circle (white)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.beginPath();
+                ctx.arc(x * scale, y * scale, outerR * scale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner circle (gradient or color)
+                if (color.includes('gradient')) {
+                    const nodeGradient = ctx.createRadialGradient(x * scale, y * scale, 0, x * scale, y * scale, innerR * scale);
+                    nodeGradient.addColorStop(0, '#ec4899');
+                    nodeGradient.addColorStop(1, '#f59e0b');
+                    ctx.fillStyle = nodeGradient;
+                } else {
+                    ctx.fillStyle = color;
+                }
+                ctx.beginPath();
+                ctx.arc(x * scale, y * scale, innerR * scale, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw nodes
+            drawNode(60, 100, 12, 8, 'gradient'); // Left
+            drawNode(100, 100, 16, 12, 'gradient'); // Center
+            drawNode(140, 100, 12, 8, 'gradient'); // Right
+            drawNode(100, 55, 12, 8, '#fbbf24'); // Top
+            drawNode(100, 145, 12, 8, '#fbbf24'); // Bottom
+
+            // Draw connections
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 2 * scale;
+            ctx.lineCap = 'round';
+            
+            const lines = [
+                [72, 92, 88, 85],
+                [112, 85, 128, 92],
+                [100, 67, 100, 88],
+                [100, 112, 100, 133],
+                [128, 108, 112, 115],
+                [88, 115, 72, 108]
+            ];
+
+            lines.forEach(([x1, y1, x2, y2]) => {
+                ctx.beginPath();
+                ctx.moveTo(x1 * scale, y1 * scale);
+                ctx.lineTo(x2 * scale, y2 * scale);
+                ctx.stroke();
+            });
+
+            // Draw rhythm waves
+            ctx.strokeStyle = 'rgba(251, 191, 36, 0.7)';
+            ctx.lineWidth = 1.5 * scale;
+            ctx.beginPath();
+            ctx.quadraticCurveTo(55 * scale, 75 * scale, 60 * scale, 80 * scale);
+            ctx.quadraticCurveTo(65 * scale, 85 * scale, 70 * scale, 80 * scale);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.quadraticCurveTo(135 * scale, 75 * scale, 140 * scale, 80 * scale);
+            ctx.quadraticCurveTo(145 * scale, 85 * scale, 150 * scale, 80 * scale);
+            ctx.stroke();
+        }
+
+        function downloadPNG() {
+            const canvas = document.getElementById('canvas');
+            const link = document.createElement('a');
+            link.download = `algorhythm-logo-${selectedSize}x${selectedSize}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function generateAndZip(preset) {
+            let sizeList = [];
+            if (preset === 'android') sizeList = [36, 48, 72, 96, 144, 192];
+            else if (preset === 'ios') sizeList = [20, 29, 40, 60, 76, 120, 180, 1024];
+            else if (preset === 'web') sizeList = [72, 96, 192, 256, 384, 512];
+
+            sizeList.forEach(size => {
+                selectedSize = size;
+                renderLogo();
+                const canvas = document.getElementById('canvas');
+                const link = document.createElement('a');
+                link.download = `algorhythm-logo-${size}x${size}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                // Stagger downloads
+                setTimeout(() => {}, 100);
+            });
+
+            alert(`Generated ${sizeList.length} PNG files for ${preset}!`);
+            selectedSize = 192;
+            renderLogo();
+        }
+
+        // Initial render
+        renderLogo();
+    </script>
+</body>
+</html>

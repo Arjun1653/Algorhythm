@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/database/database_provider.dart';
+import '../../../../core/providers/app_settings_provider.dart';
+import '../../../../core/providers/shared_preferences_provider.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../domain/usecases/complete_onboarding.dart';
 import '../providers/onboarding_provider.dart';
 
-class OnboardingScreen extends ConsumerWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(onboardingProvider);
     final notifier = ref.read(onboardingProvider.notifier);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -105,7 +113,7 @@ class OnboardingScreen extends ConsumerWidget {
                     width: double.infinity,
                     height: 54,
                     child: ElevatedButton(
-                      onPressed: () => _handleNext(context, ref, state),
+                      onPressed: _saving ? null : () => _handleNext(state),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -136,19 +144,26 @@ class OnboardingScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _handleNext(
-      BuildContext context, WidgetRef ref, OnboardingState state) async {
+  Future<void> _handleNext(OnboardingState state) async {
+    if (_saving) return;
     if (state.step < 2) {
       ref.read(onboardingProvider.notifier).nextStep();
     } else {
-      final prefs = await SharedPreferences.getInstance();
-      final isar = ref.read(isarProvider);
-      await CompleteOnboarding(prefs, isar).call(
-        mode: state.mode,
-        level: state.level,
-        dailyGoal: state.dailyGoal,
-      );
-      if (context.mounted) context.go(AppRoutes.home);
+      setState(() => _saving = true);
+      try {
+        final prefs = ref.read(sharedPreferencesProvider);
+        final isar = ref.read(isarProvider);
+        await CompleteOnboarding(prefs, isar).call(
+          mode: state.mode,
+          level: state.level,
+          dailyGoal: state.dailyGoal,
+        );
+        ref.read(appModeProvider.notifier).set(state.mode.name);
+        ref.read(dailyGoalProvider.notifier).set(state.dailyGoal);
+        if (mounted) context.go(AppRoutes.home);
+      } finally {
+        if (mounted) setState(() => _saving = false);
+      }
     }
   }
 }
@@ -174,7 +189,11 @@ class _StepDots extends StatelessWidget {
           height: 8,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: isActive ? AppColors.accent : AppColors.darkSurface3,
+            color: isActive
+                ? AppColors.accent
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkSurface3
+                    : AppColors.lightSurface3),
             borderRadius: BorderRadius.circular(4),
           ),
         );

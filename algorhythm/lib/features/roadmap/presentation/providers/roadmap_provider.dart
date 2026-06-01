@@ -34,7 +34,7 @@ final topicMasteryProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final result = <Map<String, dynamic>>[];
   for (final t in topics) {
     final solved = solvedCounts[t.topicId] ?? 0;
-    if (solved == 0) continue;
+    if (solved == 0 || t.estimatedProblems <= 0) continue;
     final pct = (solved / t.estimatedProblems * 100).round().clamp(0, 100);
     result.add({
       'topicId': t.topicId,
@@ -69,16 +69,12 @@ const _striverSectionNames = [
   'Miscellaneous',
 ];
 
-final striverSectionsProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final isar = ref.watch(isarProvider);
-  final all =
-      await isar.problemModels.filter().idGreaterThan(0).findAll();
-
+final striverSectionsProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  final problems = ref.watch(allProblemsProvider).valueOrNull ?? [];
   final results = <Map<String, dynamic>>[];
   for (var i = 0; i < _striverSectionNames.length; i++) {
     final topicId = 'striver_${i + 1}';
-    final section = all.where((p) => p.topicId == topicId).toList();
+    final section = problems.where((p) => p.topicId == topicId).toList();
     final solved =
         section.where((p) => p.status == ProblemStatus.solved).length;
     results.add({

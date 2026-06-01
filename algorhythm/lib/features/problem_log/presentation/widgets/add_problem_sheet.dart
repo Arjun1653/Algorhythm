@@ -120,7 +120,18 @@ class _AddProblemSheetState extends ConsumerState<AddProblemSheet> {
                     if (_isConfirmStep)
                       _IconBtn(
                         icon: Icons.chevron_left_rounded,
-                        onTap: () => setState(() => _isConfirmStep = false),
+                        onTap: () => setState(() {
+                          _isConfirmStep = false;
+                          _fromCatalog = false;
+                          _selectedCatalogEntry = null;
+                          _nameCtrl.clear();
+                          _urlCtrl.clear();
+                          _platform = Platform.leetcode;
+                          _difficulty = Difficulty.medium;
+                          _topicId = 'arrays_hashing';
+                          _patterns.clear();
+                          _confidence = 3;
+                        }),
                         surface: surface3,
                         border: border,
                         color: text2,
@@ -202,8 +213,9 @@ class _AddProblemSheetState extends ConsumerState<AddProblemSheet> {
       await repo.addProblem(problem);
       await UpdateStreak(isar).call();
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('${problem.title} logged!'),
             backgroundColor: AppColors.darkSurface3,

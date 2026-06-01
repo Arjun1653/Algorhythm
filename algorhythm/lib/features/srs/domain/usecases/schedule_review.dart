@@ -21,7 +21,9 @@ class ScheduleReview {
     required int reviewCount,
     required int previousIntervalDays,
   }) {
-    assert(confidenceRating >= 1 && confidenceRating <= 5);
+    if (confidenceRating < 1 || confidenceRating > 5) {
+      throw ArgumentError('confidenceRating must be 1–5, got $confidenceRating');
+    }
 
     final newEaseFactor = max(
       1.3,

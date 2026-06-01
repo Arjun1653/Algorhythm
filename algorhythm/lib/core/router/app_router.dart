@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,6 +17,9 @@ import 'app_routes.dart';
 GoRouter buildRouter(SharedPreferences prefs) {
   return GoRouter(
     initialLocation: AppRoutes.home,
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(child: Text('Page not found: ${state.error}')),
+    ),
     redirect: (context, state) {
       final onboardingDone = prefs.getBool('onboarding_complete') ?? false;
       final goingToOnboarding = state.matchedLocation == AppRoutes.onboarding;
@@ -35,7 +39,8 @@ GoRouter buildRouter(SharedPreferences prefs) {
       GoRoute(
         path: AppRoutes.problemDetail,
         builder: (_, state) {
-          final id = int.parse(state.pathParameters['id']!);
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (id == null) return const Scaffold(body: Center(child: Text('Problem not found')));
           return ProblemDetailScreen(problemId: id);
         },
       ),

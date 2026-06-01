@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/database/database_initializer.dart';
 import 'core/database/database_provider.dart';
 import 'core/providers/app_settings_provider.dart';
 import 'core/providers/shared_preferences_provider.dart';
@@ -19,6 +20,8 @@ void main() async {
 
   final isar = await openIsar();
   final prefs = await SharedPreferences.getInstance();
+
+  await DatabaseInitializer(isar).migrate(prefs);
 
   runApp(
     ProviderScope(

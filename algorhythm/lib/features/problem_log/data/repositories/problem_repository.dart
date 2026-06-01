@@ -23,8 +23,16 @@ class ProblemRepository {
   Stream<List<ProblemModel>> watchAll() {
     return _isar.problemModels.watchLazy(fireImmediately: true).asyncMap(
       (_) async {
-        final all =
-            await _isar.problemModels.filter().idGreaterThan(0).findAll();
+        // Exclude auto-seeded unsolved catalog problems (striver seeds with
+        // catalogId starting 's' and status unsolved) from the user's log.
+        final all = await _isar.problemModels
+            .filter()
+            .not()
+            .group((q) => q
+                .statusEqualTo(ProblemStatus.unsolved)
+                .and()
+                .catalogIdStartsWith('s'))
+            .findAll();
         all.sort((a, b) => b.dateSolved.compareTo(a.dateSolved));
         return all;
       },
@@ -62,8 +70,8 @@ class ProblemRepository {
   Future<List<CatalogEntry>> searchCatalog(String query) {
     if (query.trim().isEmpty) return Future.value([]);
     return _isar.catalogEntrys
-        .where()
-        .nameStartsWith(query.trim())
+        .filter()
+        .nameContains(query.trim(), caseSensitive: false)
         .limit(20)
         .findAll();
   }

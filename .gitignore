@@ -20,3 +20,6 @@ algorhythm/lib/**/*.g.dart
 # IDE
 .idea/
 *.iml
+
+
+convert_logo.py

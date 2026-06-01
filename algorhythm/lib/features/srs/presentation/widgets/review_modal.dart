@@ -158,11 +158,12 @@ class _ReviewModalState extends ConsumerState<ReviewModal> {
     problem.nextReviewDate = _keepRetrying ? result.nextReviewDate : null;
 
     await repo.updateProblem(problem);
-    await UpdateStreak(isar).call();
+    await UpdateStreak(isar).call(isNewSolve: false);
 
     if (mounted) {
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             _keepRetrying

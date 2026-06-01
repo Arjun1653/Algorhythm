@@ -42,8 +42,15 @@ class ReviewScreen extends ConsumerWidget {
             );
           }
 
-          final overdue = problems.where((p) => p.nextReviewDate != null && p.nextReviewDate!.isBefore(DateTime.now())).length;
-          final dueToday = problems.length - overdue;
+          final now = DateTime.now();
+          final todayStart = DateTime(now.year, now.month, now.day);
+          final todayEnd = todayStart.add(const Duration(days: 1));
+          final overdue = problems.where((p) =>
+              p.nextReviewDate != null && p.nextReviewDate!.isBefore(todayStart)).length;
+          final dueToday = problems.where((p) =>
+              p.nextReviewDate != null &&
+              !p.nextReviewDate!.isBefore(todayStart) &&
+              p.nextReviewDate!.isBefore(todayEnd)).length;
 
           return Column(
             children: [

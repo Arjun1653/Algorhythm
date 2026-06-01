@@ -15,10 +15,10 @@ class CompleteOnboarding {
     required ExperienceLevel level,
     required int dailyGoal,
   }) async {
-    _prefs.setString('mode', mode.name);
-    _prefs.setString('level', level.name);
-    _prefs.setInt('daily_goal', dailyGoal);
-    _prefs.setBool('onboarding_complete', true);
+    await _prefs.setString('mode', mode.name);
+    await _prefs.setString('level', level.name);
+    await _prefs.setInt('daily_goal', dailyGoal);
+    await _prefs.setBool('onboarding_complete', true);
 
     final initializer = DatabaseInitializer(_isar);
     await initializer.initializeIfNeeded(isStriverMode: mode == AppMode.striver);

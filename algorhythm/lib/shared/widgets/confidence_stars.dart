@@ -10,13 +10,15 @@ class ConfidenceStars extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final emptyColor = isDark ? AppColors.darkText3 : AppColors.lightText3;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
         return Icon(
           i < value ? Icons.star_rounded : Icons.star_outline_rounded,
           size: size,
-          color: i < value ? AppColors.amber : AppColors.darkText3,
+          color: i < value ? AppColors.amber : emptyColor,
         );
       }),
     );
@@ -37,6 +39,8 @@ class ConfidencePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final emptyColor = isDark ? AppColors.darkText3 : AppColors.lightText3;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
@@ -48,7 +52,7 @@ class ConfidencePicker extends StatelessWidget {
             child: Icon(
               rating <= value ? Icons.star_rounded : Icons.star_outline_rounded,
               size: size,
-              color: rating <= value ? AppColors.amber : AppColors.darkText3,
+              color: rating <= value ? AppColors.amber : emptyColor,
             ),
           ),
         );
